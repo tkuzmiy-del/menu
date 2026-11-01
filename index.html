@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2C7656">
+<title>Кухня на двох</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Golos+Text:wght@400;500;600;700&family=Unbounded:wght@500;700&display=swap">
+<style>
+/* Layout: phone-first kitchen app — day strip on top, cards in one column, tab bar fixed at the bottom */
+:root{
+  --bg:#F3F5F0; --surface:#FFFFFF; --sunk:#E8ECE5; --ink:#1C221F; --muted:#5D6A63; --line:#D9E0D7;
+  --basil:#2C7656; --basil-soft:#DCEFE5; --yolk:#C98A0C; --yolk-soft:#FBEFD2; --salt:#4A6FA5; --salt-soft:#E1E9F5;
+  --f-display:"Unbounded","Golos Text",system-ui,sans-serif;
+  --f-body:"Golos Text",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:14px;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#111513; --surface:#1A201D; --sunk:#232A26; --ink:#E8EEEA; --muted:#9AA8A1; --line:#2E3732;
+  --basil:#5DC092; --basil-soft:#1F3A2E; --yolk:#F0B941; --yolk-soft:#3A2F14; --salt:#8DB0E3; --salt-soft:#1E2A3B; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#111513; --surface:#1A201D; --sunk:#232A26; --ink:#E8EEEA; --muted:#9AA8A1; --line:#2E3732;
+  --basil:#5DC092; --basil-soft:#1F3A2E; --yolk:#F0B941; --yolk-soft:#3A2F14; --salt:#8DB0E3; --salt-soft:#1E2A3B; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.45;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:14px calc(88px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:16px}
+h1,h2,h3{margin:0;text-wrap:balance}
+h1{font-family:var(--f-display);font-weight:700;font-size:22px;letter-spacing:-.01em}
+h2{font-family:var(--f-display);font-weight:500;font-size:17px}
+h3{font-size:15px;font-weight:600}
+.eyebrow{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);font-weight:600}
+.muted{color:var(--muted)}
+.num{font-variant-numeric:tabular-nums}
+header.top{display:flex;justify-content:space-between;align-items:flex-end;gap:12px;flex-wrap:wrap}
+.sync{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px}
+.sync i{width:8px;height:8px;border-radius:50%;background:var(--muted);display:inline-block}
+.sync.on i{background:var(--basil)}
+/* day strip */
+.strip{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.chip{flex:0 0 auto;min-width:54px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:12px;
+  padding:7px 10px;font:inherit;text-align:center;cursor:pointer;display:flex;flex-direction:column;gap:1px}
+.chip b{font-size:15px}.chip small{font-size:11px;color:var(--muted)}
+.chip.sel{background:var(--ink);color:var(--bg);border-color:var(--ink)}.chip.sel small{color:var(--bg);opacity:.75}
+.chip.today{box-shadow:inset 0 -3px 0 var(--basil)}
+.chip.done small{color:var(--basil)}
+/* cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px}
+.dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.meals{display:flex;flex-direction:column;gap:0}
+.meal{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:12px 0;border-top:1px solid var(--line);align-items:start}
+.meal:first-child{border-top:0;padding-top:4px}
+.meal .body{min-width:0;display:flex;flex-direction:column;gap:3px}
+.meal .t{font-weight:600}
+.meal.is-done .t{text-decoration:line-through;color:var(--muted)}
+.rlink{align-self:flex-start;margin-top:4px;border:0;background:var(--basil-soft);color:var(--basil);font:inherit;font-size:13px;font-weight:600;
+  padding:4px 10px;border-radius:999px;cursor:pointer}
+.box{appearance:none;-webkit-appearance:none;width:24px;height:24px;border-radius:7px;border:2px solid var(--line);background:var(--surface);
+  cursor:pointer;display:grid;place-content:center;margin:1px 0 0}
+.box::after{content:"";width:11px;height:6px;border-left:2.5px solid var(--surface);border-bottom:2.5px solid var(--surface);transform:rotate(-45deg) translate(1px,-1px);opacity:0}
+.box:checked{background:var(--basil);border-color:var(--basil)}.box:checked::after{opacity:1}
+.box:focus-visible,.chip:focus-visible,button:focus-visible{outline:2px solid var(--basil);outline-offset:2px}
+.prep{background:var(--yolk-soft);border-color:transparent}
+.prep h2{color:var(--ink)}
+.prep .eyebrow{color:var(--yolk)}
+.row{display:grid;grid-template-columns:28px 1fr;gap:10px;padding:9px 0;align-items:start}
+.row + .row{border-top:1px dashed color-mix(in srgb,var(--yolk) 35%,transparent)}
+.row.is-done span{text-decoration:line-through;color:var(--muted)}
+.note{display:flex;gap:10px;align-items:flex-start;background:var(--salt-soft);border-radius:12px;padding:10px 12px;font-size:14px}
+.note b{color:var(--salt)}
+.tip{font-size:13.5px;color:var(--muted)}
+/* shopping */
+.progress{height:8px;background:var(--sunk);border-radius:99px;overflow:hidden}
+.progress > i{display:block;height:100%;background:var(--basil);border-radius:99px;transition:width .3s}
+.sec h2{margin-bottom:4px}
+.item{display:grid;grid-template-columns:28px 1fr auto;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:start}
+.item:first-of-type{border-top:0}
+.item .n{min-width:0}.item .n div:first-child{font-weight:500}
+.item .q{font-weight:600;text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.item.is-done .n,.item.is-done .q{color:var(--muted);text-decoration:line-through}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:space-between}
+.btn{border:1px solid var(--line);background:var(--surface);color:var(--ink);font:inherit;font-size:13.5px;font-weight:500;padding:7px 12px;border-radius:10px;cursor:pointer}
+/* menu */
+.mday{display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:78px 1fr;gap:8px;font-size:14px}
+.mrow .s{color:var(--muted);font-size:12.5px;padding-top:1px}
+.mrow button{all:unset;cursor:pointer;color:var(--ink);border-bottom:1px dotted var(--muted)}
+.rules{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+/* recipes list */
+.rlist{display:grid;grid-template-columns:1fr;gap:8px}
+.ritem{all:unset;cursor:pointer;display:grid;grid-template-columns:40px 1fr auto;gap:10px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:11px 12px}
+.ritem .no{font-family:var(--f-display);font-size:15px;color:var(--basil);font-weight:700}
+.ritem .tm{font-size:12.5px;color:var(--muted);white-space:nowrap}
+/* sheet */
+.sheet{position:fixed;inset:0;z-index:30;background:var(--bg);overflow-y:auto;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:calc(12px + env(safe-area-inset-top,0px)) calc(32px + env(safe-area-inset-bottom,0px))}
+.sheet .wrap{gap:14px}
+.sheethead{display:flex;justify-content:space-between;align-items:center;gap:10px;position:sticky;top:0;background:var(--bg);padding-block:6px;z-index:1}
+.badge{display:inline-block;background:var(--basil-soft);color:var(--basil);font-weight:600;font-size:12.5px;border-radius:999px;padding:3px 10px}
+.ing{margin:0;padding:0;list-style:none;display:flex;flex-direction:column}
+.ing li{padding:8px 0;border-top:1px solid var(--line)}.ing li:first-child{border-top:0}
+.steps{margin:0;padding-left:22px;display:flex;flex-direction:column;gap:10px}
+.steps li::marker{font-weight:700;color:var(--basil)}
+.callout{border-radius:12px;padding:10px 12px;font-size:14px}
+.callout.ok{background:var(--basil-soft)}.callout.tip2{background:var(--yolk-soft)}
+/* tab bar */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--surface);border-top:1px solid var(--line);
+  display:grid;grid-template-columns:repeat(4,1fr);
+  padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));
+  padding-top:6px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+nav.tabs button{all:unset;cursor:pointer;text-align:center;padding:6px 2px;border-radius:10px;font-size:12.5px;font-weight:600;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:3px}
+nav.tabs button svg{width:22px;height:22px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs button[aria-current="page"]{color:var(--basil)}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+
+html{-webkit-text-size-adjust:100%}:root{padding-top:env(safe-area-inset-top,0px)}body{margin:0}[hidden]{display:none!important}img{max-width:100%}
+</style>
+</head>
+<body>
+
+<div class="wrap" id="app"></div>
+<nav class="tabs" id="tabs"></nav>
+<div class="sheet" id="sheet" hidden></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script>
+let WEEK_ID = "w20261102";
+let WEEK_LABEL = "2–8 листопада";
+
+let DAYS = [
+ {k:"d0",date:"2026-11-01",short:"Нд",dm:"1.11",name:"Неділя, 1 листопада",tag:"Закупка",meals:[],
+  intro:"День закупки. Сьогодні купуємо все на тиждень і робимо заготовки на перші дні.",
+  prepTitle:"Після закупки",
+  prep:["Закупитися за списком (вкладка «Закупка»).",
+   "Курку на обід Пн (400 г) і лосось на вечерю Пн (400 г) залиш у холодильнику.",
+   "Решту курячого філе поділи на пакети й підпиши: Ср — 400 г, Пт — 260 г, Сб — 400 г, Нд — 400 г. Усе в морозилку.",
+   "Стегна, лосось на неділю, скумбрію й хек — теж у морозилку.",
+   "Звари 8 яєць для обідів Вт і Ср: 10 хв у киплячій воді, охолоди. Зберігай у шкаралупі.",
+   "Помий і просуши огірки, помідори й зелень — салати потім робляться за 3 хвилини."]},
+ {k:"d1",date:"2026-11-02",short:"Пн",dm:"2.11",name:"Понеділок, 2 листопада",meals:[
+   {s:"Сніданок",t:"Омлет з овочами",r:"1",x:"+ скибка житнього хліба"},
+   {s:"Обід",t:"Курка з гречкою",r:"4",x:"+ салат з огірків і зелені"},
+   {s:"Вечеря",t:"Лосось з броколі",r:"3"},
+   {s:"Перекус",t:"Кефір 200 мл + 20 г горіхів"}],
+  prep:["Наріж цибулю й часник для шакшуки, покриши фету. Солону бринзу замочи в холодній воді на 10–15 хв.",
+   "Наріж огірки й помідори на салат до обіду Вт — у контейнер, без заправки."]},
+ {k:"d2",date:"2026-11-03",short:"Вт",dm:"3.11",name:"Вівторок, 3 листопада",meals:[
+   {s:"Сніданок",t:"Вівсянка із замороженими ягодами",r:"2"},
+   {s:"Обід",t:"Сочевичний крем-суп Street Soup",r:"5",x:"+ 2 варені яйця + салат"},
+   {s:"Вечеря",t:"Шакшука",r:"14",x:"2–3 яйця на людину"},
+   {s:"Перекус",t:"Яблуко + 15 г мигдалю"}],
+  salt:"Солоне сьогодні: фета й оливки в шакшуці, суп Street Soup. Нічого не досолюй.",
+  prep:["Курку на вечерю Ср (пакет «Ср», 400 г) переклади з морозилки в холодильник.",
+   "Наріж капусту на салат до обіду Ср."]},
+ {k:"d3",date:"2026-11-04",short:"Ср",dm:"4.11",name:"Середа, 4 листопада",meals:[
+   {s:"Сніданок",t:"Сир 5% 150 г + заморожені ягоди або груша + 1 ст. л. льону"},
+   {s:"Обід",t:"Сочевичний крем-суп Street Soup",r:"5",x:"+ 2 варені яйця + салат з капусти"},
+   {s:"Вечеря",t:"Курка з кабачками",r:"8"},
+   {s:"Перекус",t:"Огірки + 2 ст. л. хумусу"}],
+  salt:"Хумус і суп уже солоні — курку солити зовсім трохи.",
+  prep:["Скумбрію (2 тушки) і стегна — з морозилки в холодильник. Рибі треба 8–10 год.",
+   "Курку «Пт» (260 г) — теж у холодильник.",
+   "Звари гречку на обід Чт: 80 г сухої + 160 мл води, 15 хв під кришкою.",
+   "Звари 8 яєць: на сніданок Чт і обід Пт."]},
+ {k:"d4",date:"2026-11-05",short:"Чт",dm:"5.11",name:"Четвер, 5 листопада",meals:[
+   {s:"Сніданок",t:"2 варені яйця + півавокадо",x:"+ скибка житнього хліба"},
+   {s:"Обід",t:"Курячі стегна з овочами",r:"9",x:"+ 100 г готової гречки"},
+   {s:"Вечеря",t:"Скумбрія запечена",r:"7",x:"+ салат з капусти й моркви"},
+   {s:"Перекус",t:"Кефір 200 мл"}],
+  prep:["Хек (400 г) — з морозилки в холодильник, 6–8 год.",
+   "Курку «Пт» запечи разом зі скумбрією: 260 г у фользі, 200 °C, 25 хв. Охолоди й поклади в контейнер — це для обіду Пт."]},
+ {k:"d5",date:"2026-11-06",short:"Пт",dm:"6.11",name:"П'ятниця, 6 листопада",meals:[
+   {s:"Сніданок",t:"Вівсянка з яблуком і корицею",r:"2"},
+   {s:"Обід",t:"Шпинатний крем-суп Street Soup",r:"10",x:"+ 2 варені яйця + 100 г курячого філе + овочевий салат"},
+   {s:"Вечеря",t:"Хек з овочами",r:"11"},
+   {s:"Перекус",t:"20 г волоських горіхів"}],
+  salt:"За рецептом 10 сьогодні без фети, бринзи, оливок і тунця. Тож у хек оливки не клади, а рибу солити слабо.",
+  prep:["Курку на вечерю Сб (пакет «Сб», 400 г) — з морозилки в холодильник.",
+   "Звари 4 яйця для салату з тунцем.",
+   "Змели 3 ст. л. вівсяних пластівців для сирників."]},
+ {k:"d6",date:"2026-11-07",short:"Сб",dm:"7.11",name:"Субота, 7 листопада",meals:[
+   {s:"Сніданок",t:"Запечені сирники",r:"12",x:"Рецепт уже на 2 порції"},
+   {s:"Обід",t:"Салат з тунцем і нутом",r:"6"},
+   {s:"Вечеря",t:"Куряче філе, запечене з овочами",r:"4б"},
+   {s:"Перекус",t:"Сир 5% 100 г"}],
+  salt:"Солоне сьогодні: тунець і нут. Не досолюй.",
+  prep:["Курку «Нд» і лосось на неділю — з морозилки в холодильник.",
+   "Почисти й наріж моркву й гарбуз для обіду Нд (брусочки 1–1,5 см і кубики 2 см)."]},
+ {k:"d7",date:"2026-11-08",short:"Нд",dm:"8.11",name:"Неділя, 8 листопада",meals:[
+   {s:"Сніданок",t:"Омлет зі шпинатом і помідорами",r:"1"},
+   {s:"Обід",t:"Курка з запеченими овочами",r:"13",x:"+ салат"},
+   {s:"Вечеря",t:"Лосось з броколі",r:"3"},
+   {s:"Перекус",t:"Йогурт натуральний 150 г"}],
+  prepTitle:"Наступний тиждень",
+  prep:["Надішли Claude фото нового меню — я оновлю застосунок і список закупки.",
+   "Закупка на новий тиждень."]}
+];
+
+let SHOP = [
+ {sec:"М'ясо і риба",items:[
+  ["chick","Куряче філе","1,9 кг","Пн, Ср, Пт, Сб, Нд. Частину одразу в морозилку"],
+  ["thigh","Курячі стегна без шкіри","4 шт","або 340 г стегнового філе · Чт"],
+  ["salmon","Філе лосося","800 г","4 шматки по 200 г · Пн, Нд"],
+  ["mack","Скумбрія","2 тушки","можна заморожену · Чт"],
+  ["hake","Філе хека","400 г","можна заморожене · Пт"]]},
+ {sec:"Яйця й молочне",items:[
+  ["eggs","Яйця","40 шт","щодня, разом 39"],
+  ["tvor","Кисломолочний сир 5%, без добавок","750 г","Ср, Сб (сирники й перекус)"],
+  ["kefir","Кефір","1 л","Пн, Чт"],
+  ["yog","Йогурт натуральний без цукру","300 г","Нд"],
+  ["milk","Молоко 1,5%","0,5 л","вівсянка Вт, Пт"],
+  ["feta","Фета або бринза","100 г","шакшука Вт"],
+  ["chs","Моцарела або твердий сир","120 г","омлети Пн, Нд"],
+  ["hum","Хумус","1 мала уп.","Ср, треба ~60 г"]]},
+ {sec:"Овочі й зелень",items:[
+  ["cuc","Огірки","1,5 кг","≈12 шт · салати й перекус"],
+  ["tom","Помідори","1,2 кг","≈10–12 шт"],
+  ["zuc","Кабачки","4 шт","Ср, Пт, Сб + омлет"],
+  ["pep","Болгарський перець","5 шт","Чт, Сб, омлет"],
+  ["oni","Цибуля","8 шт","≈1 кг"],
+  ["car","Морква","8 шт","≈1 кг"],
+  ["gar","Часник","1 головка",""],
+  ["cab","Капуста білокачанна","1 невеликий качан","салати Ср, Чт, Пт, Нд"],
+  ["spin","Шпинат свіжий","150 г","омлет Нд"],
+  ["pump","Гарбуз","300 г","Нд"],
+  ["herb","Зелень (кріп, петрушка)","3 пучки",""],
+  ["avo","Авокадо","1 шт","Чт"],
+  ["lem","Лимони","6 шт","риба, салати, курка"]]},
+ {sec:"Фрукти",items:[
+  ["apl","Яблука","4 шт","Вт, Пт, Сб"]]},
+ {sec:"Заморожене",items:[
+  ["broc","Броколі заморожена","1,2 кг","Пн, Нд"],
+  ["berr","Ягоди без цукру","500 г","Вт, Ср, Сб"],
+  ["caul","Цвітна капуста","300 г","Нд, можна свіжу"]]},
+ {sec:"Крупи, хліб, консерви",items:[
+  ["ss-l","Street Soup сочевичний крем-суп","4 пакети","Вт, Ср"],
+  ["ss-s","Street Soup шпинатний крем-суп","2 пакети","Пт"],
+  ["buck","Гречка","250 г сухої","Пн, Чт"],
+  ["oats","Цільні вівсяні пластівці","300 г","не швидкого приготування"],
+  ["rye","Житній хліб","1 невеликий","треба 4 скибки"],
+  ["ctom","Томати у власному соку","2 банки × 400 г","Вт, Чт"],
+  ["tuna","Тунець у власному соку","1 банка","Сб"],
+  ["chpea","Нут консервований","1 банка × 400 г","Сб"],
+  ["oliv","Оливки без кісточок","1 мала банка","шакшука"],
+  ["waln","Волоські горіхи","160 г","вівсянка, перекуси"],
+  ["alm","Мигдаль","30 г","Вт"],
+  ["flax","Насіння льону","60 г","вівсянка, сир"]]},
+ {sec:"Перевір, чи є вдома",items:[
+  ["oil","Олія оливкова","",""],
+  ["spice","Паприка, чорний перець, кмин, лавровий лист","",""],
+  ["spice2","Сушений часник, кориця, ваніль, сіль","",""],
+  ["paper","Пергамент і фольга","",""]]}
+];
+
+let RULES = ["Алкоголь виключено щонайменше на 3 місяці.",
+ "Без цукру, солодких напоїв, соків, випічки, білого хліба. Фруктів не більше 2 цілих на день.",
+ "Їсти 3 рази на день і 1–2 перекуси; остання їжа за 3 години до сну.",
+ "Спочатку овочі й білок, гарнір наприкінці.",
+ "Жирна риба (лосось, скумбрія) 2–3 рази на тиждень.",
+ "Після їжі прогулянка 10–15 хвилин; загалом 8–10 тисяч кроків на день.",
+ "Пити воду, чай і каву без цукру. Сіль мінімально: тунець, нут, оливки, фета, бринза й сир уже солоні, тому в такі дні не досолюйте і беріть не більше двох солоних продуктів на день."];
+
+let RECIPES = [
+ {n:"1",t:"Омлет з овочами",tm:"10 хв",ing:["6 яєць (на вечерю — 4)","300 г овочів на вибір: помідор, перець, кабачок, шпинат, гриби, броколі","60 г сиру: моцарела, твердий, фета або бринза (з фетою чи бринзою не солити)","2 ч. л. оливкової олії, дрібка солі, чорний перець"],
+  note:"На двох: велика сковорода 26–28 см або дві порції по черзі.",
+  st:["Овочі помийте й наріжте кубиками близько 1 см, гриби скибочками, шпинат грубо порвіть. Сир натріть або покришіть.","Розігрійте сковороду з антипригарним покриттям на середньому вогні 1 хвилину, додайте олію.","Спочатку викладіть щільні овочі (перець, кабачок, гриби, броколі) і смажте 3–4 хвилини, помішуючи. Помідор і шпинат додайте за 1 хвилину до кінця.","Яйця збийте виделкою з дрібкою солі й перцем до однорідного кольору.","Залийте овочі яйцями, зменшіть вогонь до слабкого, не мішайте. Накрийте кришкою на 4–5 хвилин.","Коли краї схопилися, а середина ще трохи волога, посипте сиром і накрийте на 1 хвилину. Складіть навпіл і подайте."],
+  ok:"Омлет зверху матовий, не рідкий, але й не сухий.",tip:"На слабкому вогні омлет залишається ніжним; гриби смажте без кришки, щоб випарувалася вода."},
+ {n:"2",t:"Вівсянка без цукру",tm:"10 хв",ing:["100–120 г цільних вівсяних пластівців (не швидкого приготування)","400 мл води або молока 1,5% (можна навпіл)","160–200 г заморожених ягід без цукру (чорна смородина, вишня без кісточок, лісова суміш) або 1 яблуко чи груша","2 ст. л. насіння льону, 40 г волоських горіхів","кориця, дрібка солі"],
+  st:["Налийте рідину в малу каструлю, додайте дрібку солі й доведіть до кипіння.","Всипте пластівці, зменшіть вогонь до слабкого й варіть 7–8 хвилин, помішуючи кожні 1–2 хвилини, поки каша загусне.","За 1 хвилину до кінця киньте заморожені ягоди прямо в кашу (без розморожування) і перемішайте. У п'ятницю замість ягід додайте нарізане кубиками яблуко за 2 хвилини до кінця.","Зніміть з вогню й накрийте кришкою на 2 хвилини.","Розкладіть у дві миски, зверху льон, подрібнені горіхи й корицю."],
+  ok:"Пластівці м'які, каша густа, але не тверда.",tip:"Якщо каша загуста, додайте 2–3 ст. л. гарячої води; льон краще злегка подрібнити в кавомолці."},
+ {n:"3",t:"Лосось з броколі",tm:"25 хв",ing:["400 г філе лосося (2 шматки)","600 г замороженої броколі","2 ст. л. оливкової олії, 2–3 зубчики часнику, 1 лимон, сіль, перець"],
+  note:"На двох: велике деко, броколі одним шаром. Якщо тісно — два деки.",
+  st:["Розігрійте духовку до 200 °C, деко застеліть пергаментом.","Часник дрібно посічіть. Заморожену броколі (не розморожуйте) змішайте в мисці з половиною олії, часником і дрібкою солі, викладіть на деко одним шаром.","Поставте деко в духовку на 10 хвилин.","Тим часом лосось промокніть паперовим рушником, посоліть, поперчіть, збризніть лимонним соком і рештою олії.","Дістаньте деко, посуньте броколі до краю й покладіть лосось шкірою вниз.","Запікайте ще 15–18 хвилин.","Подайте з дольками лимона."],
+  ok:"Лосось легко розділяється на волокна, колір усередині рівний рожевий.",tip:"Якщо броколі блідувата, на останні 2–3 хвилини ввімкніть гриль."},
+ {n:"4",t:"Курка з гречкою",tm:"30 хв",ing:["400 г курячого філе","140 г сухої гречки","1 цибулина, 2 середні морквини","2 ч. л. олії, паприка, чорний перець, дрібка солі","Салат: 2 огірки, зелень, 2 ч. л. олії, лимонний сік"],
+  st:["Гречку переберіть і промийте холодною водою. Залийте 280–300 мл води (1:2), додайте дрібку солі.","Доведіть до кипіння, зменшіть вогонь до мінімуму, накрийте кришкою й варіть 15 хвилин, не піднімаючи кришку. Зніміть з вогню й укутайте рушником на 5–10 хвилин.","Філе наріжте кубиками 2–3 см, приправте сіллю, перцем і паприкою. Цибулю наріжте дрібно, моркву натріть на крупній тертці.","Розігрійте олію на середньому вогні, обсмажте курку 5 хвилин, помішуючи, поки вона побіліє з усіх боків.","Додайте цибулю й моркву, накрийте кришкою й тушкуйте ще 5–7 хвилин на слабкому вогні.","Для салату наріжте огірки й зелень, заправте олією й лимонним соком.","Спочатку їжте салат, потім курку з гречкою."],
+  ok:"Курка всередині біла, сік прозорий; гречка розсипчаста.",tip:"Заміна гречки рисом: бурий, дикий або басматі, 120 г сухого; варіть за інструкцією на пакеті (бурий 25–30 хвилин)."},
+ {n:"4б",t:"Куряче філе, запечене з овочами",tm:"30 хв",ing:["400 г курячого філе","600 г овочів: кабачок, перець, цибуля","2 ст. л. олії, паприка, перець, дрібка солі"],
+  st:["Розігрійте духовку до 200 °C, деко застеліть пергаментом.","Філе наріжте на великі шматки (3–4 см), овочі великими кубиками.","Змішайте з олією, спеціями й сіллю, викладіть одним шаром (не купою, щоб не тушкувалося).","Запікайте 25–30 хвилин, перемішавши на половині часу."],
+  ok:"У найтовщому шматку курки немає рожевого, краї овочів золотисті."},
+ {n:"5",t:"Сочевичний крем-суп",tm:"5 хв / 35 хв",ing:["Варіант Street Soup (Вт і Ср): 2 пакети по 50 г сочевичного крем-супу","500 мл гарячої води (близько 90 °C)","4 варені яйця","Овочевий салат"],
+  note:"У меню на Вт і Ср — готовий Street Soup. Домашній суп нижче — якщо захочеться зварити самим: одна каструля дає 2 порції, тобто один обід на вас двох.",
+  st:["Висипте кожен пакет (50 г) в окрему миску, залийте 250 мл гарячої води (близько 90 °C).","Одразу перемішайте 20–30 секунд і залиште на 1–2 хвилини.","Подайте з 2 вареними яйцями й овочевим салатом. Сіль не додавайте."],
+  home:{ing:["150 г червоної сочевиці (суха)","1 цибулина, 1 морквина, 2 зубчики часнику","1,2 л води, 1 ч. л. оливкової олії","1/2 ч. л. куркуми, 1/2 ч. л. кмину, сіль, лимон","2 ст. л. натурального йогурту, 2 варені яйця на порцію"],
+   st:["Сочевицю промийте в друшляку під холодною водою, поки вода не стане прозорою.","Цибулю й моркву наріжте дрібно, часник посічіть.","У каструлі розігрійте олію на середньому вогні, смажте цибулю з морквою 3–4 хвилини, до прозорості цибулі.","Додайте часник, куркуму й кмин, помішуйте 30 секунд.","Всипте сочевицю, залийте водою, доведіть до кипіння й зніміть піну.","Зменшіть вогонь, варіть 20–25 хвилин, поки сочевиця розвариться.","Посоліть наприкінці. За бажанням збийте занурювальним блендером до кремової консистенції.","Подайте з лимонним соком, ложкою йогурту й вареними яйцями."]}},
+ {n:"6",t:"Салат з тунцем і нутом",tm:"10 хв",ing:["1 банка тунця у власному соку (≈140 г)","200–240 г консервованого нуту (у власному соку або розсолі)","4 яйця, 2 огірки, 2–4 помідори, зелень","2 ст. л. оливкової олії, сік 1 лимона, чорний перець"],
+  st:["Яйця покладіть у киплячу воду й варіть 10 хвилин. Охолодіть у холодній воді 2 хвилини й очистіть.","Нут злийте з рідини, промийте під холодною водою 30–60 секунд, дайте стекти.","Тунець відкрийте, злийте сік, розімніть виделкою на шматочки.","Огірки й помідори наріжте кубиками, яйця четвертинками, зелень дрібно.","Змішайте все в мисці. Олію, лимонний сік і перець збийте виделкою, залийте салат і обережно перемішайте. Сіль не додавайте."]},
+ {n:"7",t:"Запечена скумбрія",tm:"30 хв",ing:["2 тушки скумбрії (свіжі або заморожені, розморожені в холодильнику 8–10 годин)","1 лимон, 1 цибулина, 2 лаврові листи, чорний перець, дрібка солі","Салат: 300 г капусти, 2 морквини, 2 ч. л. оливкової олії, лимонний сік"],
+  note:"Курку для обіду Пт (260 г) можна запекти поруч, у фользі — та сама температура й час.",
+  st:["Розігрійте духовку до 200 °C. Відріжте шматок фольги вдвічі довший за тушку — для кожної рибини окремо.","Якщо скумбрія не випотрошена, видаліть нутрощі, голову й плавці. Промийте всередині й зовні, промокніть паперовим рушником.","Злегка посоліть, поперчіть з обох боків і всередині. Усередину покладіть кільця лимона, цибулі й лавровий лист.","Загорніть у фольгу щільно, швом догори, покладіть на деко.","Запікайте 25 хвилин. За 5 хвилин до кінця розгорніть верх фольги, щоб риба трохи підрум'янилась.","Для салату тонко наріжте капусту, натріть моркву, змішайте з олією й лимонним соком, злегка пом'яйте руками."],
+  ok:"М'якоть біля хребта біла й легко відділяється.",tip:"Запах при запіканні сильний — відкрийте вікно або ввімкніть витяжку."},
+ {n:"8",t:"Курка з кабачками",tm:"30 хв",ing:["400 г курячого філе","2 кабачки, 1 цибулина","2 помідори або 300 г консервованих томатів у власному соку","2 ч. л. олії, паприка, чорний перець, сушений часник, дрібка солі"],
+  st:["Кабачки й цибулю наріжте кубиками 1,5–2 см. Помідори наріжте, консервовані томати розімніть виделкою.","Філе наріжте кубиками 2–3 см, приправте спеціями.","Розігрійте олію в глибокій сковороді на середньому вогні, обсмажте курку 5 хвилин, помішуючи.","Додайте цибулю, смажте 2 хвилини, потім кабачки й томати.","Влийте 100 мл води, накрийте кришкою, зменшіть вогонь до слабкого й тушкуйте 15–20 хвилин, помішуючи раз на 5 хвилин.","Посоліть дрібкою наприкінці, додайте зелень."],
+  ok:"Кабачок м'який, але не розвалився; курка біла всередині.",tip:"Якщо кабачки пустили багато води, останні 3 хвилини тушкуйте без кришки."},
+ {n:"9",t:"Курячі стегна з овочами",tm:"40 хв",ing:["4 курячі стегна без шкіри (або 340 г стегнового філе)","2 цибулини, 2 морквини, 2 перці","400 г консервованих томатів у власному соку (або 2 ст. л. томатної пасти без цукру)","2 ч. л. олії, паприка, чорний перець, лавровий лист, дрібка солі","200 г готової гречки на гарнір (≈80 г сухої — зварена в середу)"],
+  st:["Якщо стегна зі шкірою, зніміть шкіру й обріжте зайвий жир. Посоліть і поперчіть.","Цибулю наріжте кубиками, моркву натріть на крупній тертці, перець наріжте соломкою.","Розігрійте олію на середньому вогні й обсмажте стегна по 3–4 хвилини з кожного боку до золотистої скоринки. Перекладіть на тарілку.","У ту саму сковороду додайте цибулю й моркву, смажте 3–4 хвилини.","Додайте томати (або пасту, розведену 200 мл води), лавровий лист і спеції. Поверніть курку.","Накрийте кришкою й тушкуйте на слабкому вогні 25–30 хвилин. За 10 хвилин до кінця додайте перець.","Подайте з гречкою."],
+  ok:"Сік з курки прозорий, м'ясо легко відходить від кістки."},
+ {n:"10",t:"Шпинатний крем-суп Street Soup",tm:"10 хв",ing:["2 пакети (по 50 г) сухого шпинатного крем-супу Street Soup","500 мл гарячої води (близько 90 °C)","4 варені яйця, 200 г курячого філе (запеченого в четвер)","Салат: огірок, помідор, капуста, лимонний сік"],
+  st:["Заздалегідь зваріть яйця (10 хвилин у киплячій воді) й охолодіть у холодній воді.","Закип'ятіть воду й дайте їй постояти 1–2 хвилини.","Висипте кожен пакет в окрему миску, залийте 250 мл гарячої води й одразу перемішуйте 20–30 секунд, щоб не було грудок. Залиште на 1–2 хвилини, щоб суп загус.","Наріжте овочі для салату, збризніть лимонним соком.","Спочатку з'їжте салат, потім суп з яйцями й курячим філе, нарізаним смужками."],
+  tip:"Важливо: сіль не додавайте. У цей день не їжте фету, бринзу, оливки й тунець."},
+ {n:"11",t:"Хек з овочами",tm:"30 хв",ing:["400 г філе хека (свіжого або замороженого)","600 г овочів: кабачок, помідор, цибуля","2 ст. л. олії, 1 лимон, чорний перець, трохи солі","Оливки 10–12 шт — у п'ятницю пропустіть (див. рецепт 10)"],
+  st:["Заморожений хек розморожуйте в холодильнику 6–8 годин. Промокніть паперовим рушником, злегка посоліть і поперчіть, залиште на 10 хвилин.","Розігрійте духовку до 190 °C.","Овочі наріжте тонкими кружальцями або кубиками (5–7 мм), змішайте з половиною олії, викладіть у форму одним шаром.","Зверху покладіть хек, збризніть лимонним соком і рештою олії, додайте оливки (якщо їсте їх цього дня).","Запікайте 18–20 хвилин, перевіривши готовність на 15-й хвилині."],
+  ok:"Риба біла по всьому шматку й розділяється на пластинки.",tip:"Оливки солоні, тому рибу солити слабо; хек ніжний, не пересушуйте."},
+ {n:"12",t:"Запечені сирники",tm:"35 хв",ing:["250 г сиру 5% (кисломолочного, без добавок)","1 яйце","3 ст. л. вівсяних пластівців, змелених у блендері або кавомолці (або 2 ст. л. вівсяного чи цільнозернового борошна)","ваніль на кінчику ножа, дрібка солі, за бажанням кориця","Для подачі: розморожені ягоди, яблуко або ківі"],
+  note:"Рецепт уже розрахований на 2 порції (6–8 сирників) — подвоювати не треба.",
+  st:["Якщо сир вологий, викладіть його на сито над мискою на 10–15 хвилин і злегка віджміть ложкою.","Пластівці змеліть у блендері до борошнистої консистенції (30–60 секунд).","У мисці розімніть сир виделкою, додайте яйце, мелені пластівці, ваніль і сіль. Замісіть до однорідної маси.","Залиште масу на 5 хвилин, щоб пластівці набухли. Маса має триматися на ложці; якщо липка, додайте ще 1 ст. л. борошна, не більше.","Розігрійте духовку до 180 °C, деко застеліть пергаментом.","Змочіть руки водою й формуйте з 2–3 ст. л. маси кульки, приплющуйте в «шайби» завтовшки 1,5–2 см. Викладіть на деко.","Запікайте 20 хвилин, на 10-й хвилині переверніть.","Подайте теплими з ягодами, яблуком або ківі."],
+  ok:"Золотиста скоринка, сирники тримають форму.",tip:"Без цукру вони менш солодкі; кориця й ягоди додають смаку."},
+ {n:"13",t:"Курка з запеченими овочами",tm:"40 хв",ing:["400 г курячого філе","600 г овочів: морква, гарбуз, цвітна капуста (можна заморожена)","2 ст. л. олії, лимон, паприка, чорний перець, дрібка солі"],
+  st:["Розігрійте духовку до 200 °C, деко застеліть пергаментом.","Моркву очистіть і наріжте брусочками 1–1,5 см, гарбуз очистіть від шкірки й насіння та наріжте кубиками 2 см, цвітну капусту розберіть на суцвіття. Заморожені овочі не розморожуйте.","Змішайте овочі з половиною олії, спеціями й дрібкою солі, викладіть на деко одним шаром і поставте в духовку на 10 хвилин.","Філе наріжте на 2–3 шматки, посоліть, поперчіть, збризніть лимонним соком і змастіть рештою олії.","Дістаньте деко, посуньте овочі до країв і покладіть курку.","Запікайте ще 20–25 хвилин, перевернувши курку на півдорозі.","Подайте з салатом з капусти чи огірків."],
+  ok:"У найтовщому шматку немає рожевого, сік прозорий; овочі м'які з золотистими краями."},
+ {n:"14",t:"Шакшука",tm:"25 хв",ing:["4–6 яєць","1 цибулина, 2 зубчики часнику","400 г консервованих томатів у власному соку","2 ч. л. олії, 1 ч. л. кмину, 1 ч. л. паприки, чорний перець","60–80 г фети або бринзи, 6–8 оливок без кісточок, зелень, лимонний сік"],
+  note:"На двох: сковорода 24–28 см з кришкою.",
+  st:["Цибулю наріжте дрібно, часник посічіть. Фету чи бринзу покришіть; надто солону бринзу замочіть у холодній воді на 10–15 хвилин.","У сковороді з кришкою розігрійте олію на середньому вогні, смажте цибулю 3–4 хвилини до прозорості.","Додайте часник, кмин і паприку, помішуйте 30 секунд.","Влийте томати, розімніть їх виделкою, додайте перець. Тушкуйте 8–10 хвилин, помішуючи, поки соус загусне (ложка залишає слід).","Зробіть у соусі 4–6 заглибин і розбийте в них яйця.","Накрийте кришкою, готуйте на слабкому вогні 5–7 хвилин.","Зверху покришіть сир, додайте оливки, зелень і кілька крапель лимонного соку."]}
+];
+
+/* ---------- state ---------- */
+const checks = {};          // id -> boolean
+let db = null, synced = false;
+let LS = "kitchen2-" + WEEK_ID;
+const prefs = {hideBought:false};
+try{ Object.assign(checks, JSON.parse(localStorage.getItem(LS) || "{}")); }catch(e){}
+try{ prefs.hideBought = localStorage.getItem(LS + "-hide") === "1"; }catch(e){}
+
+const todayISO = (() => { const d = new Date(); return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0"); })();
+function defaultDay(){
+  const i = DAYS.findIndex(d => d.date === todayISO);
+  if (i >= 0) return i;
+  return todayISO < DAYS[0].date ? 0 : DAYS.length - 1;
+}
+let dayIdx = defaultDay();
+let sb = null;
+let tab = (location.hash || "#today").slice(1);
+if (!["today","shop","menu","recipes"].includes(tab)) tab = "today";
+
+const cid = s => WEEK_ID + "-" + s;
+const isOn = s => !!checks[cid(s)];
+const pending = {};
+function toggle(key){
+  const id = cid(key);
+  checks[id] = !checks[id];
+  try{ localStorage.setItem(LS, JSON.stringify(checks)); }catch(e){}
+  render();
+  if (sb){
+    const val = checks[id];
+    pending[id] = (pending[id] || Promise.resolve()).then(() =>
+      sb.from("checks").upsert({id, done: val, updated_at: new Date().toISOString()})).catch(()=>{});
+  }
+}
+
+/* ---------- rendering ---------- */
+const app = document.getElementById("app");
+const ICONS = {
+ today:'<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M8 3v4M16 3v4M3.5 10h17"/></svg>',
+ shop:'<svg viewBox="0 0 24 24"><path d="M5 8h14l-1.3 10.2a2 2 0 0 1-2 1.8H8.3a2 2 0 0 1-2-1.8z"/><path d="M9 8V6.5a3 3 0 0 1 6 0V8"/></svg>',
+ menu:'<svg viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h10"/></svg>',
+ recipes:'<svg viewBox="0 0 24 24"><path d="M6 4h10a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2z"/><path d="M9 9h6M9 13h4"/></svg>'
+};
+const TABN = {today:"Сьогодні",shop:"Закупка",menu:"Меню",recipes:"Рецепти"};
+function renderTabs(){
+  document.getElementById("tabs").innerHTML = Object.keys(TABN).map(k =>
+    `<button data-tab="${k}" ${k===tab?'aria-current="page"':''}>${ICONS[k]}<span>${TABN[k]}</span></button>`).join("");
+}
+function syncLine(){
+  return synced ? `<span class="sync on"><i></i>Спільно на двох</span>` : `<span class="sync"><i></i>Галочки лише на цьому пристрої</span>`;
+}
+function dayProgress(d){
+  const keys = d.meals.map((m,i)=>`m-${d.k}-${i}`).concat(d.prep.map((p,i)=>`p-${d.k}-${i}`));
+  return [keys.filter(isOn).length, keys.length];
+}
+function renderToday(){
+  const d = DAYS[dayIdx];
+  const strip = DAYS.map((x,i)=>{
+    const [a,b] = dayProgress(x);
+    return `<button class="chip ${i===dayIdx?'sel':''} ${x.date===todayISO?'today':''} ${a===b&&b?'done':''}" data-day="${i}">
+      <small>${x.short}</small><b class="num">${x.dm.split(".")[0]}</b><small>${x.tag || (a===b&&b?'готово':a+'/'+b)}</small></button>`;}).join("");
+  const meals = d.meals.length ? `<section class="card"><div class="meals">${d.meals.map((m,i)=>{
+      const key=`m-${d.k}-${i}`, on=isOn(key);
+      return `<div class="meal ${on?'is-done':''}"><input type="checkbox" class="box" id="${key}" data-check="${key}" ${on?'checked':''} aria-label="Готово: ${m.t}">
+        <div class="body"><span class="eyebrow">${m.s}</span><label class="t" for="${key}">${m.t}</label>
+        ${m.x?`<span class="tip">${m.x}</span>`:''}
+        ${m.r?`<button class="rlink" data-recipe="${m.r}">Рецепт ${m.r} на двох →</button>`:''}</div></div>`;}).join("")}</div></section>` :
+      `<section class="card"><p style="margin:0">${d.intro}</p></section>`;
+  const salt = d.salt ? `<div class="note"><b>Сіль</b><span>${d.salt}</span></div>` : "";
+  const prepTitle = d.prepTitle || "Ввечері: заготовки на завтра";
+  const prep = `<section class="card prep"><span class="eyebrow">${d.meals.length && !d.prepTitle ? 'На завтра: '+(DAYS[dayIdx+1]?.name.split(",")[0].toLowerCase()||'') : 'Список справ'}</span>
+     <h2 style="margin:2px 0 6px">${prepTitle}</h2>
+     ${d.prep.map((p,i)=>{const key=`p-${d.k}-${i}`,on=isOn(key);
+       return `<div class="row ${on?'is-done':''}"><input type="checkbox" class="box" id="${key}" data-check="${key}" ${on?'checked':''}><label for="${key}"><span>${p}</span></label></div>`;}).join("")}
+   </section>`;
+  const [a,b] = dayProgress(d);
+  return `<header class="top"><div><span class="eyebrow">Тиждень ${WEEK_LABEL}</span><h1>${d.name}</h1></div>${syncLine()}</header>
+    <div class="strip" role="tablist" aria-label="Дні тижня">${strip}</div>
+    <div class="dayhead"><span class="muted num">Зроблено ${a} з ${b}</span>${d.meals.length?'<span class="tip">Після їжі — прогулянка 10–15 хв</span>':''}</div>
+    ${salt}${meals}${prep}`;
+}
+function renderShop(){
+  let all=0, done=0;
+  SHOP.forEach(s=>s.items.forEach(it=>{all++; if(isOn("s-"+it[0])) done++;}));
+  const secs = SHOP.map(s=>{
+    const rows = s.items.filter(it=>!(prefs.hideBought && isOn("s-"+it[0]))).map(it=>{
+      const key="s-"+it[0], on=isOn(key);
+      return `<div class="item ${on?'is-done':''}"><input type="checkbox" class="box" id="${key}" data-check="${key}" ${on?'checked':''}>
+        <label class="n" for="${key}"><div>${it[1]}</div>${it[3]?`<div class="tip">${it[3]}</div>`:''}</label><span class="q">${it[2]}</span></div>`;}).join("");
+    const left = s.items.filter(it=>!isOn("s-"+it[0])).length;
+    return `<section class="card sec"><div class="dayhead"><h2>${s.sec}</h2><span class="tip num">${left ? 'ще '+left : 'усе є'}</span></div>${rows || '<p class="tip" style="margin:6px 0 0">Усе куплено</p>'}</section>`;}).join("");
+  return `<header class="top"><div><span class="eyebrow">${DAYS[0].name} · на 2 людей</span><h1>Закупка на тиждень</h1></div>${syncLine()}</header>
+   <div class="card" style="display:flex;flex-direction:column;gap:10px">
+     <div class="dayhead"><b class="num">Куплено ${done} з ${all}</b><button class="btn" data-hide>${prefs.hideBought?'Показати куплене':'Сховати куплене'}</button></div>
+     <div class="progress"><i style="width:${Math.round(done/all*100)}%"></i></div>
+     <span class="tip">Кількості вже на двох. Рибу й курку на кінець тижня одразу кладіть у морозилку.</span>
+   </div>${secs}`;
+}
+function renderMenu(){
+  const days = DAYS.filter(d=>d.meals.length).map(d=>`<section class="card mday"><h3>${d.name}</h3>
+    ${d.meals.map(m=>`<div class="mrow"><span class="s">${m.s}</span><span>${m.r?`<button data-recipe="${m.r}">${m.t}</button>`:m.t}${m.x?` <span class="tip">${m.x}</span>`:''}</span></div>`).join("")}</section>`).join("");
+  return `<header class="top"><div><span class="eyebrow">Тиждень ${WEEK_LABEL}</span><h1>Меню</h1></div>${syncLine()}</header>
+   <section class="card"><span class="eyebrow">Орієнтир на одну людину</span>
+     <p style="margin:6px 0 0">2100–2300 ккал на день, білка 130–150 г. Білок (м'ясо, риба) 150–200 г у готовому вигляді; гарнір (гречка, бобові) 150 г готового; овочі без обмежень, крім картоплі.</p></section>
+   ${days}
+   <section class="card"><h2 style="margin-bottom:10px">Правила на кожен день</h2><ol class="rules">${RULES.map(r=>`<li>${r}</li>`).join("")}</ol>
+   <p class="tip" style="margin:12px 0 0">Температури духовки — для режиму «верх-низ»; при конвекції зменшіть на 10–20 °C. 1 ст. л. = 15 мл, 1 ч. л. = 5 мл. Час орієнтовний, перевіряйте готовність за описом.</p></section>`;
+}
+function renderRecipes(){
+  return `<header class="top"><div><span class="eyebrow">Усі кількості на двох</span><h1>Рецепти</h1></div></header>
+   <div class="rlist">${RECIPES.map(r=>`<button class="ritem" data-recipe="${r.n}"><span class="no">${r.n}</span><span>${r.t}</span><span class="tm">${r.tm}</span></button>`).join("")}</div>`;
+}
+function render(){
+  renderTabs();
+  app.innerHTML = tab==="today"?renderToday():tab==="shop"?renderShop():tab==="menu"?renderMenu():renderRecipes();
+}
+function centerChip(){ const c=app.querySelector(".chip.sel"); const s=app.querySelector(".strip"); if(c&&s) s.scrollLeft = c.offsetLeft - s.clientWidth/2 + c.clientWidth/2; }
+function openRecipe(n){
+  const r = RECIPES.find(x=>x.n===n); if(!r) return;
+  const sh = document.getElementById("sheet");
+  const list = a => `<ul class="ing">${a.map(i=>`<li>${i}</li>`).join("")}</ul>`;
+  const steps = a => `<ol class="steps">${a.map(i=>`<li>${i}</li>`).join("")}</ol>`;
+  sh.innerHTML = `<div class="wrap">
+    <div class="sheethead"><button class="btn" data-close>← Назад</button><span class="badge">${r.n==="12"?"2 порції":"На двох"}</span></div>
+    <div><span class="eyebrow">Рецепт ${r.n} · ${r.tm}</span><h1 style="margin-top:2px">${r.t}</h1></div>
+    ${r.note?`<div class="note"><b>Увага</b><span>${r.note}</span></div>`:''}
+    <section class="card"><h2 style="margin-bottom:6px">Інгредієнти</h2>${list(r.ing)}</section>
+    <section class="card"><h2 style="margin-bottom:10px">Приготування</h2>${steps(r.st)}</section>
+    ${r.ok?`<div class="callout ok"><b>Готовність:</b> ${r.ok}</div>`:''}
+    ${r.tip?`<div class="callout tip2"><b>Порада:</b> ${r.tip}</div>`:''}
+    ${r.home?`<section class="card"><span class="eyebrow">Домашній варіант · 2 порції з каструлі</span><h2 style="margin:2px 0 6px">Інгредієнти</h2>${list(r.home.ing)}<h2 style="margin:14px 0 10px">Приготування</h2>${steps(r.home.st)}
+      <p class="tip" style="margin:10px 0 0">Зберігання: другу порцію охолодіть і тримайте в холодильнику до 2–3 днів.</p></section>`:''}
+  </div>`;
+  sh.hidden = false; sh.scrollTop = 0; document.body.style.overflow = "hidden";
+}
+function closeRecipe(){ const sh=document.getElementById("sheet"); sh.hidden=true; document.body.style.overflow=""; }
+
+document.addEventListener("click", e=>{
+  const t = e.target.closest("[data-tab],[data-day],[data-recipe],[data-close],[data-hide]");
+  if(!t) return;
+  if(t.dataset.tab){ tab=t.dataset.tab; history.replaceState(null,"","#"+tab); render(); window.scrollTo(0,0); }
+  else if(t.dataset.day){ dayIdx=+t.dataset.day; render(); centerChip(); }
+  else if(t.dataset.recipe){ openRecipe(t.dataset.recipe); }
+  else if("close" in t.dataset){ closeRecipe(); }
+  else if("hide" in t.dataset){ prefs.hideBought=!prefs.hideBought; try{localStorage.setItem(LS+"-hide",prefs.hideBought?"1":"0");}catch(err){} render(); }
+});
+document.addEventListener("change", e=>{ const k=e.target.dataset && e.target.dataset.check; if(k) toggle(k); });
+document.addEventListener("keydown", e=>{ if(e.key==="Escape") closeRecipe(); });
+window.addEventListener("hashchange", ()=>{ const h=location.hash.slice(1); if(TABN[h]){ tab=h; render(); } });
+
+render(); centerChip();
+
+/* ---------- shared sync (Supabase) ---------- */
+const SB_URL = "https://mdgnjtooemopgxuzfoeo.supabase.co";
+const SB_KEY = "sb_publishable_agRK4XRpKdQYGn8DXhk2Tw_9yDr0bwr";
+(async ()=>{
+  if (!window.supabase) return;
+  sb = window.supabase.createClient(SB_URL, SB_KEY);
+  // 1. newest week from the database (falls back to the week built into this page)
+  try{
+    const {data} = await sb.from("weeks").select("id,label,data").eq("is_current", true).order("created_at",{ascending:false}).limit(1);
+    const w = data && data[0];
+    if (w && w.id !== WEEK_ID && w.data && w.data.days){
+      WEEK_ID = w.id; WEEK_LABEL = w.label;
+      DAYS = w.data.days; SHOP = w.data.shop; RULES = w.data.rules || RULES; RECIPES = w.data.recipes || RECIPES;
+      LS = "kitchen2-" + WEEK_ID;
+      for (const k in checks) delete checks[k];
+      try{ Object.assign(checks, JSON.parse(localStorage.getItem(LS) || "{}")); }catch(e){}
+      dayIdx = defaultDay(); render(); centerChip();
+    }
+  }catch(e){}
+  // 2. shared ticks
+  const apply = row => { if (row && row.id && row.id.startsWith(WEEK_ID)) checks[row.id] = !!row.done; };
+  try{
+    const {data, error} = await sb.from("checks").select("id,done").like("id", WEEK_ID + "%");
+    if (error) throw error;
+    (data || []).forEach(apply);
+    synced = true;
+    try{ localStorage.setItem(LS, JSON.stringify(checks)); }catch(e){}
+    render();
+  }catch(e){ synced = false; render(); return; }
+  sb.channel("checks").on("postgres_changes", {event:"*", schema:"public", table:"checks"}, p => {
+    apply(p.new); try{ localStorage.setItem(LS, JSON.stringify(checks)); }catch(e){}
+    if (document.getElementById("sheet").hidden) render();
+  }).subscribe();
+  document.addEventListener("visibilitychange", async ()=>{
+    if (document.visibilityState !== "visible") return;
+    const {data} = await sb.from("checks").select("id,done").like("id", WEEK_ID + "%");
+    (data || []).forEach(apply); render();
+  });
+})();
+</script>
+</body>
+</html>
